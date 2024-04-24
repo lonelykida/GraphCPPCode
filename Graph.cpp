@@ -62,3 +62,35 @@ void inputGraph(Graph* G){
         cout<<"These two nodes has been add to the Graph successfully!"<<endl;
     }while(1);
 }
+
+//3.Find vertex 'vex' in Graph G and then return the vertex's pointer or NULL if not found
+Vertex* getVertex(Graph*G,string vex){
+    if(!G || G->vertexMap.find(vex) == G->vertexMap.end())return NULL;
+    return G->vertexMap.find(vex)->second;
+}
+
+//4.put a value to vertex 'vex' in graph G
+bool putVertexValue(Graph*G,string vex,string value){
+    if(!G || G->vertexMap.find(vex) == G->vertexMap.end())return false;
+    G->vertexMap[vex]->data = value;
+    return true;
+}
+
+//5.Find the 1st adjacent vertex of 'vex' in graph G,or NULL if not found
+Vertex* firstAdjVertex(Graph*G,string vex){
+    if(!G || G->vertexMap.find(vex)==G->vertexMap.end())return NULL;
+    return G->vertexMap[G->vertexMap[vex]->adjVertexs[0]];
+}
+
+//6.Find the next adjacent vertex of 'w' in 'vex' in graph G or NULL if 'w' is the last one
+Vertex* nextAdjVertex(Graph*G,string vex,string w){
+    if(!G || G->vertexMap.find(vex) == G->vertexMap.end() 
+    || G->vertexMap[vex]->adjVertexs[G->vertexMap[vex]->adjVertexs.size()-1] == w)return NULL;
+    for(int i = 0;i < G->vertexMap[vex]->adjVertexs.size();i++)
+        if(G->vertexMap[vex]->adjVertexs[i] == w)return G->vertexMap[G->vertexMap[vex]->adjVertexs[i+1]];
+    return NULL;    
+}
+
+
+
+
