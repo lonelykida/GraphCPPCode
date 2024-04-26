@@ -77,12 +77,75 @@ Graph* initGraph(int vNum = 0){
 //2.图G存在，销毁图G
 void destroyGraph(Graph*G){
     if(!G)return;
-    for(auto vSet:G->adjList){
-        
-    }
-    for(int i = 0;i < G->adjList.size();i++){
-        auto V = G->adjList[i];
-        delete V;
+    for(VSet* v:G->adjList){    //对每个顶点表，删除跟随的边表
+        ESet*e = v->first;
+        while(e->next){
+            ESet*temp = e->next;
+            delete e->next;
+            e->next = temp;
+        }
+        delete e;   //最后删除顶点表
     }
     delete G;
 }
+
+//3.顶点v存在，返回顶点v的第一个邻接点，否则返回NULL
+ESet* firstAdjVertex(Graph*G,string v){
+    if(G->vertex2NumMap.find(v) == G->vertex2NumMap.end())return nullptr;
+    int i = G->vertex2NumMap[v];
+    return G->adjList[i]->first;
+}
+
+//4.顶点v存在，返回顶点v邻接点w的下一个邻接点，否则返回NULL
+ESet* nextAdjVertex(Graph*G,string v,string w){
+    if(G->vertex2NumMap.find(v) == G->vertex2NumMap.end() || G->vertex2NumMap.find(w) == G->vertex2NumMap.end())return nullptr;
+    auto V = G->adjList[G->vertex2NumMap[v]];
+    auto E = V->first;
+    while(E){
+        if(E->VertexName == w)return E;
+        E = E->next;
+    }
+    return nullptr;
+}
+
+//5.新增顶点v->w的路径
+bool insertArc(Graph*G,string v,string w){
+    if(G->vertex2NumMap.find(v) == G->vertex2NumMap.end())return false;
+    //查找边v->w是否已存在，若已存在，则直接返回
+    ESet*e = G->adjList[G->vertex2NumMap[v]]->first;
+    while(e){
+        if(e->VertexName == w)return true;
+        e = e->next;
+    }
+    if(G->vertex2NumMap.find(w) == G->vertex2NumMap.end()){
+        VSet*V = new VSet;  //若w是新结点，则新增
+        V->count = 0;
+        V->VertexName = w;
+        V->first = NULL;
+        G->adjList.push_back(V);
+        G->vertex2NumMap[V->VertexName] = G->vertexNum;
+        G->num2VertexMap[G->vertexNum] = V->VertexName;
+        G->vertexName.push_back(w);
+        G->vertexNum++;
+    }
+    ESet*e = new ESet;
+    e->VertexName = w;
+    cout<<"Please input the weight of the v to w:"<<endl;
+    cin>>e->weight;
+    e->next = nullptr;
+    if(!G->adjList[G->vertex2NumMap[v]]->first)G->adjList[G->vertex2NumMap[v]]->first = e;
+    else{
+        ESet*temp = G->adjList[G->vertex2NumMap[v]]->first;
+        while(temp->next)temp = temp->next;
+        temp->next = e;
+    }
+    G->adjList[G->vertex2NumMap[v]]->count++;
+    if(!G->isDirected)insertArc(G,w,v); //若是无向图，则再反向加一下
+    return true;
+}
+
+//6.删除顶点v及其相关的路径
+bool deleteArc(Graph*G,string v){
+    
+}
+
