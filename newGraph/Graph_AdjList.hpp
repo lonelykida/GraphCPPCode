@@ -102,7 +102,7 @@ ESet* nextAdjVertex(Graph*G,string v,string w){
     auto V = G->adjList[G->vertex2NumMap[v]];
     auto E = V->first;
     while(E){
-        if(E->VertexName == w)return E;
+        if(E->VertexName == w)return E->next;
         E = E->next;
     }
     return nullptr;
@@ -128,16 +128,16 @@ bool insertArc(Graph*G,string v,string w){
         G->vertexName.push_back(w);
         G->vertexNum++;
     }
-    ESet*e = new ESet;
-    e->VertexName = w;
+    ESet*cure = new ESet;
+    cure->VertexName = w;
     cout<<"Please input the weight of the v to w:"<<endl;
-    cin>>e->weight;
-    e->next = nullptr;
-    if(!G->adjList[G->vertex2NumMap[v]]->first)G->adjList[G->vertex2NumMap[v]]->first = e;
+    cin>>cure->weight;
+    cure->next = nullptr;
+    if(!G->adjList[G->vertex2NumMap[v]]->first)G->adjList[G->vertex2NumMap[v]]->first = cure;
     else{
         ESet*temp = G->adjList[G->vertex2NumMap[v]]->first;
         while(temp->next)temp = temp->next;
-        temp->next = e;
+        temp->next = cure;
     }
     G->adjList[G->vertex2NumMap[v]]->count++;
     if(!G->isDirected)insertArc(G,w,v); //若是无向图，则再反向加一下
@@ -146,6 +146,119 @@ bool insertArc(Graph*G,string v,string w){
 
 //6.删除顶点v及其相关的路径
 bool deleteArc(Graph*G,string v){
-    
+    if(!G || G->vertex2NumMap.find(v) == G->vertex2NumMap.end())return false;
+    int i = G->vertex2NumMap[v];    //找到顶点v的存储编号
+    G->vertex2NumMap.erase(v);      //删除顶点v的图记录
+    G->num2VertexMap.erase(i);
+    for(int i = 0;i < G->vertexName.size();i++) //删除顶点v的记录名
+        if(G->vertexName[i] == v){
+            G->vertexName.erase(G->vertexName.begin()+i);
+            break;
+        }
+    VSet*V = G->adjList[i];        //删除顶点v的邻接表
+    ESet*e = V->first;
+    while(e){   //删除顶点v的边表
+        ESet*temp = e->next;
+        delete e;
+        e = temp;
+    }
+    delete e;
+    delete V;
+    // G->adjList.erase(G->adjList.begin()+i);  //这里是不能删的，因为i也是邻接表中的下标，删了后其他点的编号就不能对应了
+    G->adjList[i]->count = 0;
+    G->adjList[i]->first = nullptr;
+    G->adjList[i]->VertexName = "this vertex has been delete."; //清空该点的记录即可
+    return true;
 }
 
+//7.删除顶点v到顶点w的路径
+bool deleteVWArc(Graph*G,string v,string w){
+    if(!G || G->vertex2NumMap.find(v) == G->vertex2NumMap.end()
+          || G->vertex2NumMap.find(w) == G->vertex2NumMap.end())return false;
+    //查找边v->w是否已存在，若不存在，则直接返回
+    ESet*e = G->adjList[G->vertex2NumMap[v]]->first;
+    ESet*temp = G->adjList[G->vertex2NumMap[v]]->first;
+    while(e){
+        if(e->VertexName == w)break;
+        if(e != temp)temp = temp->next;
+        e = e->next;
+    }
+    if(!e)return false;  //边不存在，删除失败
+    temp->next = e->next;
+    delete e;
+    G->adjList[G->vertex2NumMap[v]]->count--;
+    if(!G->isDirected)deleteVWArc(G,w,v);   //若是无向图，则反向再来一遍
+    return true;
+}
+
+//8.DFS - 深搜
+void DFS(Graph*G){
+    cout<<"starting DFS.";
+    if(!G || !G->vertexNum)return;
+    map<string,bool>visited;//记录是否访问过
+    vector<string>path;     //访问队列
+    path.push_back(G->vertexName[0]);
+    int rear = 1,front = 0;
+    visited[G->vertexName[0]] = true;
+    for(int i = 0;i < G->vertexName.size();i++){    //不漏掉每个顶点
+        if(visited.find(G->vertexName[i]) == visited.end()){ //若当前点未访问过，则将其放入访问队列并标记
+            path.push_back(G->vertexName[i]);
+            visited[G->vertexName[i]] = true;
+            rear++;
+        }
+        while(front<rear){
+            string cur = path[front++];
+            cout<<cur<<" ";
+            auto E = firstAdjVertex(G,cur); //防止空指针
+            string next = E?E->VertexName:"";
+            if(!next.size())continue;
+            if(visited.find(next) == visited.end()){
+                path.push_back(next);//没访问过
+                visited[next] = true;
+                rear++;
+            }else{
+                while(next.size() && visited.find(next) != visited.end()){
+                    auto E = nextAdjVertex(G,cur,next);
+                    if(E) next = E->VertexName;
+                    else next.clear();
+                }
+                if(next.size()){
+                    path.push_back(next);
+                    visited[next] = true;
+                    rear++;
+                }
+            }
+        }
+    }
+}
+
+//9.BFS - 广搜
+void BFS(Graph*G){
+    cout<<"starting BFS.\n";
+    if(!G || !G->vertexNum)return;
+    map<string,bool>visited;//记录是否访问过
+    vector<string>path;     //访问队列
+    path.push_back(G->vertexName[0]);
+    visited[G->vertexName[0]] = true;
+    int front = 0,rear = 1;
+    for(int i = 0;i < G->vertexName.size();i++){    //不漏掉每个顶点
+        if(visited.find(G->vertexName[i]) == visited.end()){ //若当前点未访问过，则将其放入访问队列并标记
+            path.push_back(G->vertexName[i]);
+            visited[G->vertexName[i]] = true;
+            rear++;
+        }
+        while(front<rear){
+            string cur = path[front++];
+            cout<<cur<<" ";
+            auto E = firstAdjVertex(G,cur);
+            while(E){
+                if(visited.find(E->VertexName) == visited.end()){
+                    path.push_back(E->VertexName);
+                    visited[E->VertexName] = true;
+                    rear++;
+                }
+                E = E->next;
+            }
+        }
+    }
+}
